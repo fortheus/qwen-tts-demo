@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 전화상담 체험 — 내 목소리로 AI 상담원 만들기</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a28;
+      --border: #2a2a40;
+      --accent: #6c63ff;
+      --accent2: #a78bfa;
+      --accent-glow: rgba(108, 99, 255, 0.3);
+      --text: #e8e8f0;
+      --text-muted: #8888aa;
+      --success: #22c55e;
+      --error: #ef4444;
+      --wave: #6c63ff;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard', 'Apple SD Gothic Neo', -apple-system, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0 1rem 4rem;
+    }
+
+    /* ── Header ── */
+    header {
+      width: 100%;
+      max-width: 860px;
+      padding: 3rem 0 2rem;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 12px;
+      color: var(--accent2);
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent2);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(1.3); }
+    }
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      line-height: 1.25;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.7;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    /* ── Steps ── */
+    .steps-row {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin: 2.5rem 0 0;
+      flex-wrap: wrap;
+    }
+    .step-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .step-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Main card ── */
+    .card {
+      width: 100%;
+      max-width: 860px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2.5rem;
+      margin-top: 2.5rem;
+    }
+
+    /* ── Section label ── */
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent2);
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ── Reference text ── */
+    .ref-text-box {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      font-size: 1.05rem;
+      line-height: 1.8;
+      color: var(--text);
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .ref-text-box::before {
+      content: '"';
+      position: absolute;
+      top: -14px; left: 20px;
+      font-size: 3rem;
+      color: var(--accent);
+      opacity: 0.4;
+      font-family: Georgia, serif;
+      line-height: 1;
+    }
+
+    /* ── Recorder ── */
+    .recorder-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      padding: 2rem 0;
+    }
+
+    .mic-btn {
+      position: relative;
+      width: 90px; height: 90px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      box-shadow: 0 0 0 0 var(--accent-glow);
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mic-btn:hover { transform: scale(1.05); }
+    .mic-btn.recording {
+      animation: ripple 1.5s ease-out infinite;
+      background: linear-gradient(135deg, #ef4444, #f97316);
+    }
+    .mic-btn svg { width: 36px; height: 36px; color: #fff; fill: currentColor; }
+    @keyframes ripple {
+      0%   { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+      70%  { box-shadow: 0 0 0 22px rgba(239,68,68,0); }
+      100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
+    }
+
+    .rec-status {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    .rec-status.active { color: #ef4444; font-weight: 600; }
+
+    /* ── Timer ── */
+    .timer {
+      font-size: 2rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      color: var(--text);
+      display: none;
+    }
+    .timer.visible { display: block; }
+
+    /* ── Waveform ── */
+    canvas#waveform {
+      width: 100%;
+      height: 60px;
+      display: none;
+      border-radius: 8px;
+    }
+    canvas#waveform.visible { display: block; }
+
+    /* ── Recorded preview ── */
+    .preview-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 1.5rem;
+      display: none;
+    }
+    .preview-row.visible { display: flex; }
+    .preview-row audio { flex: 1; height: 36px; }
+
+    /* ── Generate button ── */
+    .gen-btn {
+      width: 100%;
+      padding: 1rem;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      transition: opacity 0.2s, transform 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 1.5rem;
+    }
+    .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .gen-btn:not(:disabled):hover { transform: translateY(-2px); opacity: 0.92; }
+    .gen-btn .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    .gen-btn.loading .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2rem 0;
+    }
+
+    /* ── Result ── */
+    .result-area {
+      display: none;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+    .result-area.visible { display: flex; }
+
+    .result-script {
+      background: linear-gradient(135deg, rgba(108,99,255,0.08), rgba(167,139,250,0.06));
+      border: 1px solid rgba(108,99,255,0.3);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      font-size: 1rem;
+      line-height: 1.8;
+      color: var(--text);
+      position: relative;
+    }
+    .result-script .ai-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent2);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ai-label::before {
+      content: '';
+      width: 8px; height: 8px;
+      background: var(--accent2);
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .audio-player-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .audio-player-wrap audio {
+      width: 100%;
+      height: 40px;
+    }
+    .audio-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .share-btn {
+      padding: 0.75rem 1.5rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: border-color 0.2s;
+      align-self: flex-start;
+    }
+    .share-btn:hover { border-color: var(--accent); }
+
+    /* ── Script selector ── */
+    .script-selector {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+    }
+    .script-chip {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .script-chip.active {
+      border-color: var(--accent);
+      color: var(--accent2);
+      background: rgba(108,99,255,0.1);
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 2rem; right: 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      font-size: 14px;
+      color: var(--text);
+      transform: translateY(120%);
+      transition: transform 0.3s;
+      z-index: 100;
+    }
+    .toast.show { transform: translateY(0); }
+    .toast.error { border-color: var(--error); }
+
+    @media (max-width: 600px) {
+      .card { padding: 1.5rem; }
+      .steps-row { gap: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Powered by Qwen3-TTS Voice Cloning
+  </div>
+  <h1>내 목소리로<br>AI 전화상담원 만들기</h1>
+  <p class="subtitle">
+    5초만 녹음하면, AI가 <strong>당신의 목소리</strong>로<br>
+    자연스러운 고객 응대를 시연합니다.
+  </p>
+
+  <div class="steps-row">
+    <div class="step-chip">
+      <span class="step-num">1</span>
+      아래 문장 소리내어 읽기
+    </div>
+    <div class="step-chip">
+      <span class="step-num">2</span>
+      내 목소리 녹음
+    </div>
+    <div class="step-chip">
+      <span class="step-num">3</span>
+      AI 상담 시연 듣기
+    </div>
+  </div>
+</header>
+
+<main class="card">
+
+  <!-- STEP 1: 레퍼런스 텍스트 -->
+  <p class="section-label">Step 1 — 아래 문장을 그대로 읽어주세요</p>
+  <div class="ref-text-box" id="refTextDisplay">
+    안녕하세요, 반갑습니다. 저는 고객 상담을 도와드리는 AI 어시스턴트입니다.
+  </div>
+
+  <!-- STEP 2: 녹음 -->
+  <p class="section-label">Step 2 — 마이크 버튼을 눌러 녹음 시작</p>
+  <div class="recorder-area">
+    <canvas id="waveform"></canvas>
+
+    <button class="mic-btn" id="micBtn" title="녹음 시작/중지">
+      <!-- mic icon -->
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 1a4 4 0 0 1 4 4v7a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm6.364 10.727a.75.75 0 0 1 .746.82A7.003 7.003 0 0 1 12.75 19.43V22h-1.5v-2.57A7.003 7.003 0 0 1 4.89 12.547a.75.75 0 0 1 1.483.226A5.5 5.5 0 0 0 17.5 12v.25a.75.75 0 0 1-.25.553 5.5 5.5 0 0 0 .864-1.076.75.75 0 0 1 .25 0z"/>
+      </svg>
+    </button>
+
+    <div class="timer" id="timer">0:00</div>
+    <p class="rec-status" id="recStatus">마이크 버튼을 눌러 녹음을 시작하세요</p>
+
+    <div class="preview-row" id="previewRow">
+      <audio id="previewAudio" controls></audio>
+      <button class="share-btn" id="reRecordBtn">🔄 다시 녹음</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: 스크립트 선택 & 생성 -->
+  <hr class="divider" />
+  <p class="section-label">Step 3 — AI가 읽을 상담 시나리오 선택</p>
+
+  <div class="script-selector" id="scriptSelector">
+    <!-- JS로 동적 생성 -->
+  </div>
+
+  <button class="gen-btn" id="genBtn" disabled>
+    <div class="spinner"></div>
+    <span id="genBtnLabel">🎙️ 내 목소리로 AI 시연 생성</span>
+  </button>
+
+  <!-- Result -->
+  <div class="result-area" id="resultArea">
+    <hr class="divider" />
+    <div class="result-script" id="resultScript">
+      <div class="ai-label">AI 상담원 대사</div>
+      <div id="scriptText"></div>
+    </div>
+    <div class="audio-player-wrap">
+      <audio id="resultAudio" controls></audio>
+      <p class="audio-hint">🎧 헤드셋을 착용하면 더 선명하게 들을 수 있습니다</p>
+    </div>
+    <button class="share-btn" id="downloadBtn">⬇️ 오디오 다운로드</button>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SCRIPTS_META = {
+  greeting: "첫 인사",
+  inquiry:  "문의 접수",
+  product:  "서비스 안내",
+  closing:  "마무리 인사",
+  full:     "전체 시나리오",
+};
+
+const REF_TEXT = "안녕하세요, 반갑습니다. 저는 고객 상담을 도와드리는 AI 어시스턴트입니다.";
+
+let mediaRecorder = null;
+let audioChunks = [];
+let recordedBlob = null;
+let isRecording = false;
+let timerInterval = null;
+let elapsedSec = 0;
+let analyser = null;
+let animFrame = null;
+let selectedScript = "full";
+let resultAudioUrl = null;
+
+// ── DOM refs ──
+const micBtn      = document.getElementById("micBtn");
+const recStatus   = document.getElementById("recStatus");
+const timerEl     = document.getElementById("timer");
+const waveform    = document.getElementById("waveform");
+const previewRow  = document.getElementById("previewRow");
+const previewAudio= document.getElementById("previewAudio");
+const reRecordBtn = document.getElementById("reRecordBtn");
+const genBtn      = document.getElementById("genBtn");
+const genBtnLabel = document.getElementById("genBtnLabel");
+const resultArea  = document.getElementById("resultArea");
+const resultAudio = document.getElementById("resultAudio");
+const scriptText  = document.getElementById("scriptText");
+const downloadBtn = document.getElementById("downloadBtn");
+const toastEl     = document.getElementById("toast");
+const scriptSel   = document.getElementById("scriptSelector");
+
+// ── Script selector chips ──
+Object.entries(SCRIPTS_META).forEach(([key, label]) => {
+  const chip = document.createElement("button");
+  chip.className = "script-chip" + (key === "full" ? " active" : "");
+  chip.textContent = label;
+  chip.dataset.key = key;
+  chip.addEventListener("click", () => {
+    document.querySelectorAll(".script-chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    selectedScript = key;
+  });
+  scriptSel.appendChild(chip);
+});
+
+// ── Waveform visualiser ──
+function drawWaveform(stream) {
+  const ctx = new AudioContext();
+  const source = ctx.createMediaStreamSource(stream);
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 256;
+  source.connect(analyser);
+
+  const canvas = waveform;
+  const cCtx = canvas.getContext("2d");
+  const bufLen = analyser.frequencyBinCount;
+  const data = new Uint8Array(bufLen);
+
+  canvas.classList.add("visible");
+
+  function draw() {
+    animFrame = requestAnimationFrame(draw);
+    analyser.getByteTimeDomainData(data);
+    cCtx.clearRect(0, 0, canvas.width, canvas.height);
+    cCtx.lineWidth = 2;
+    cCtx.strokeStyle = "#6c63ff";
+    cCtx.beginPath();
+    const sliceW = canvas.width / bufLen;
+    let x = 0;
+    for (let i = 0; i < bufLen; i++) {
+      const v = data[i] / 128;
+      const y = (v * canvas.height) / 2;
+      i === 0 ? cCtx.moveTo(x, y) : cCtx.lineTo(x, y);
+      x += sliceW;
+    }
+    cCtx.lineTo(canvas.width, canvas.height / 2);
+    cCtx.stroke();
+  }
+  draw();
+}
+
+function stopWaveform() {
+  if (animFrame) cancelAnimationFrame(animFrame);
+  waveform.classList.remove("visible");
+}
+
+// ── Timer ──
+function startTimer() {
+  elapsedSec = 0;
+  timerEl.textContent = "0:00";
+  timerEl.classList.add("visible");
+  timerInterval = setInterval(() => {
+    elapsedSec++;
+    const m = Math.floor(elapsedSec / 60);
+    const s = String(elapsedSec % 60).padStart(2, "0");
+    timerEl.textContent = `${m}:${s}`;
+    // 최대 30초 자동 중지
+    if (elapsedSec >= 30) stopRecording();
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerEl.classList.remove("visible");
+}
+
+// ── Recording ──
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream, { mimeType: getSupportedMimeType() });
+    mediaRecorder.ondataavailable = e => e.data.size > 0 && audioChunks.push(e.data);
+    mediaRecorder.onstop = () => {
+      const mimeType = getSupportedMimeType();
+      recordedBlob = new Blob(audioChunks, { type: mimeType });
+      const url = URL.createObjectURL(recordedBlob);
+      previewAudio.src = url;
+      previewRow.classList.add("visible");
+      genBtn.disabled = false;
+    };
+    mediaRecorder.start(100);
+    isRecording = true;
+    micBtn.classList.add("recording");
+    recStatus.textContent = "녹음 중... 마이크 버튼을 다시 누르면 중지";
+    recStatus.classList.add("active");
+    startTimer();
+    drawWaveform(stream);
+  } catch (err) {
+    showToast("마이크 접근 권한이 필요합니다.", true);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  }
+  isRecording = false;
+  micBtn.classList.remove("recording");
+  recStatus.textContent = "녹음 완료! 아래에서 미리 듣고, 시연을 생성하세요.";
+  recStatus.classList.remove("active");
+  stopTimer();
+  stopWaveform();
+}
+
+micBtn.addEventListener("click", () => {
+  if (isRecording) stopRecording();
+  else startRecording();
+});
+
+reRecordBtn.addEventListener("click", () => {
+  recordedBlob = null;
+  previewRow.classList.remove("visible");
+  resultArea.classList.remove("visible");
+  genBtn.disabled = true;
+  recStatus.textContent = "마이크 버튼을 눌러 다시 녹음하세요";
+});
+
+// ── Synthesize ──
+genBtn.addEventListener("click", async () => {
+  if (!recordedBlob) return;
+  genBtn.disabled = true;
+  genBtn.classList.add("loading");
+  genBtnLabel.textContent = "AI가 목소리를 학습 중입니다...";
+
+  try {
+    const formData = new FormData();
+    const ext = recordedBlob.type.includes("webm") ? "webm" : "wav";
+    formData.append("audio", recordedBlob, `recording.${ext}`);
+    formData.append("reference_text", REF_TEXT);
+    formData.append("script_key", selectedScript);
+
+    const res = await fetch("/api/synthesize", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "서버 오류");
+    }
+
+    const data = await res.json();
+    scriptText.textContent = data.script;
+    resultAudio.src = data.audio_url + "?t=" + Date.now();
+    resultAudioUrl = data.audio_url;
+    resultArea.classList.add("visible");
+    resultArea.scrollIntoView({ behavior: "smooth", block: "start" });
+    showToast("✅ AI 시연이 완성되었습니다!");
+  } catch (err) {
+    showToast("오류: " + err.message, true);
+  } finally {
+    genBtn.disabled = false;
+    genBtn.classList.remove("loading");
+    genBtnLabel.textContent = "🎙️ 내 목소리로 AI 시연 생성";
+  }
+});
+
+// ── Download ──
+downloadBtn.addEventListener("click", async () => {
+  if (!resultAudioUrl) return;
+  const a = document.createElement("a");
+  a.href = resultAudioUrl;
+  a.download = "ai_voice_demo.wav";
+  a.click();
+});
+
+// ── Toast ──
+let toastTimer = null;
+function showToast(msg, isError = false) {
+  toastEl.textContent = msg;
+  toastEl.className = "toast show" + (isError ? " error" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastEl.classList.remove("show"); }, 3500);
+}
+
+// ── MIME type helper ──
+function getSupportedMimeType() {
+  const types = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
+  return types.find(t => MediaRecorder.isTypeSupported(t)) || "audio/webm";
+}
+
+// ── Resize canvas ──
+function resizeCanvas() {
+  waveform.width  = waveform.offsetWidth;
+  waveform.height = waveform.offsetHeight;
+}
+window.addEventListener("resize", resizeCanvas);
+resizeCanvas();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+temp_audio/
+output_audio/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+venv/
+.venv/
+*.egg-info/
