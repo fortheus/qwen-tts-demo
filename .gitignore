@@ -3,6 +3,7 @@ output_audio/
 __pycache__/
 *.pyc
 .env
+.claude/
 .DS_Store
 venv/
 .venv/

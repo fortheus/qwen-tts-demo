@@ -7,6 +7,25 @@ import uuid
 import tempfile
 import asyncio
 from pathlib import Path
+
+
+def _load_dotenv():
+    """의존성 없이 같은 폴더의 .env 파일을 환경변수로 로드"""
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        os.environ.setdefault(key, value)
+
+
+_load_dotenv()
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -158,14 +177,26 @@ async def synthesize(
     audio: UploadFile = File(...),
     reference_text: str = Form(...),
     script_key: str = Form(default="full"),
+    custom_text: str = Form(default=""),
 ):
     """
     고객 목소리(reference_audio) + 레퍼런스 텍스트 → 스크립트를 고객 목소리로 합성
+    script_key="custom" 이면 custom_text 를 그대로 합성
     """
-    if script_key not in SCRIPTS:
-        raise HTTPException(status_code=400, detail=f"script_key must be one of: {list(SCRIPTS.keys())}")
+    if script_key == "custom":
+        target_text = custom_text.strip()
+        if not target_text:
+            raise HTTPException(status_code=400, detail="직접 입력 텍스트가 비어 있습니다.")
+        if len(target_text) > 1000:
+            raise HTTPException(status_code=400, detail="텍스트는 최대 1000자까지 입력할 수 있습니다.")
+    else:
+        if script_key not in SCRIPTS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"script_key must be one of: {list(SCRIPTS.keys()) + ['custom']}",
+            )
+        target_text = SCRIPTS[script_key]
 
-    target_text = SCRIPTS[script_key]
     session_id = str(uuid.uuid4())[:8]
 
     # 업로드된 오디오 저장

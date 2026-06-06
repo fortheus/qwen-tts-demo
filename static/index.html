@@ -356,6 +356,39 @@
       background: rgba(108,99,255,0.1);
     }
 
+    /* ── Custom text input ── */
+    .custom-text-wrap {
+      display: none;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+    .custom-text-wrap.visible { display: flex; }
+    .custom-text-input {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 1rem;
+      line-height: 1.7;
+      transition: border-color 0.2s;
+    }
+    .custom-text-input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    .custom-text-input::placeholder { color: var(--text-muted); }
+    .custom-text-count {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: right;
+    }
+
     /* ── Toast ── */
     .toast {
       position: fixed;
@@ -445,6 +478,17 @@
     <!-- JS로 동적 생성 -->
   </div>
 
+  <!-- 직접 입력 텍스트 영역 -->
+  <div class="custom-text-wrap" id="customTextWrap">
+    <textarea
+      id="customText"
+      class="custom-text-input"
+      maxlength="1000"
+      placeholder="AI가 내 목소리로 읽어줄 문장을 자유롭게 입력하세요.&#10;예) 안녕하세요, 콜메이트 미용실입니다. 예약 도와드리겠습니다."
+    ></textarea>
+    <div class="custom-text-count"><span id="customCount">0</span> / 1000자</div>
+  </div>
+
   <button class="gen-btn" id="genBtn" disabled>
     <div class="spinner"></div>
     <span id="genBtnLabel">🎙️ 내 목소리로 AI 시연 생성</span>
@@ -475,6 +519,7 @@ const SCRIPTS_META = {
   product:  "서비스 안내",
   closing:  "마무리 인사",
   full:     "전체 시나리오",
+  custom:   "✏️ 직접 입력",
 };
 
 const REF_TEXT = "안녕하세요, 반갑습니다. 저는 고객 상담을 도와드리는 AI 어시스턴트입니다.";
@@ -506,6 +551,9 @@ const scriptText  = document.getElementById("scriptText");
 const downloadBtn = document.getElementById("downloadBtn");
 const toastEl     = document.getElementById("toast");
 const scriptSel   = document.getElementById("scriptSelector");
+const customWrap  = document.getElementById("customTextWrap");
+const customText  = document.getElementById("customText");
+const customCount = document.getElementById("customCount");
 
 // ── Script selector chips ──
 Object.entries(SCRIPTS_META).forEach(([key, label]) => {
@@ -517,8 +565,16 @@ Object.entries(SCRIPTS_META).forEach(([key, label]) => {
     document.querySelectorAll(".script-chip").forEach(c => c.classList.remove("active"));
     chip.classList.add("active");
     selectedScript = key;
+    // 직접 입력 선택 시 텍스트 영역 표시
+    customWrap.classList.toggle("visible", key === "custom");
+    if (key === "custom") customText.focus();
   });
   scriptSel.appendChild(chip);
+});
+
+// ── 직접 입력 글자 수 카운터 ──
+customText.addEventListener("input", () => {
+  customCount.textContent = customText.value.length;
 });
 
 // ── Waveform visualiser ──
@@ -638,6 +694,14 @@ reRecordBtn.addEventListener("click", () => {
 // ── Synthesize ──
 genBtn.addEventListener("click", async () => {
   if (!recordedBlob) return;
+
+  // 직접 입력 모드 검증
+  if (selectedScript === "custom" && !customText.value.trim()) {
+    showToast("읽어줄 텍스트를 입력해 주세요.", true);
+    customText.focus();
+    return;
+  }
+
   genBtn.disabled = true;
   genBtn.classList.add("loading");
   genBtnLabel.textContent = "AI가 목소리를 학습 중입니다...";
@@ -648,6 +712,9 @@ genBtn.addEventListener("click", async () => {
     formData.append("audio", recordedBlob, `recording.${ext}`);
     formData.append("reference_text", REF_TEXT);
     formData.append("script_key", selectedScript);
+    if (selectedScript === "custom") {
+      formData.append("custom_text", customText.value.trim());
+    }
 
     const res = await fetch("/api/synthesize", {
       method: "POST",

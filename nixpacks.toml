@@ -1,0 +1,4 @@
+# Railway/Nixpacks 빌드 설정
+# 녹음(webm/ogg) → wav 변환에 ffmpeg가 필요하므로 apt로 설치
+[phases.setup]
+aptPkgs = ["...", "ffmpeg"]
